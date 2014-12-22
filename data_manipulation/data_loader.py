@@ -66,13 +66,13 @@ class Loader_Manager(object):
             return self.load_trips_range(sub_instruction)
     
     def load_trips_random(self, driver_num=1, sub_instruction='2'):
-        d = Driver()
+        d = Driver(driver_num)
         for i in range(1,int(sub_instruction)+1):
             d.add_trip(self.load_trip(driver_num,random.randint(1,200)))
         return d
     
     def load_trips_range(self, driver_num=1, sub_instruction='1:2'):
-        d = Driver()
+        d = Driver(driver_num)
         split_2 = sub_instruction.find(':')
         for i in range(int(sub_instruction[0:split_2]), 
                        int(sub_instruction[split_2+1,len(sub_instruction)])):
@@ -81,7 +81,7 @@ class Loader_Manager(object):
     
     def load_trip(self, driver_num=1, trip_num=1):
         specific_file = file_loc+"/"+str(driver_num)+"/"+str(trip_num)+".csv"
-        t = Trip()
+        t = Trip(trip_num)
         with open(specific_file, 'rb') as csvfile:
             reader = csv.reader(csvfile, delimiter=',', quotechar='|')
             for row in reader:
@@ -95,8 +95,8 @@ class Driver(object):
     
     def __init__(self, id_ = -1):
         pass
-        global id
-        id = id_
+        global id_num
+        id_num = str(id_)
         global trip_list
         trip_list = []
         
@@ -108,8 +108,8 @@ class Driver(object):
 class Trip(object):
     
     def __init__(self, id_ = -1):
-        global id
-        id = id_
+        global id_num
+        id_num = str(id_)
         global x_list
         x_list = []
         global y_list

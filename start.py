@@ -17,6 +17,7 @@ def main():
     trips = l.load_drivers_range('1:2-r2')
     
     w = Output_Manager(file_loc)
+   # w.collect_index()
     w.write_out_1()
     sys.exit(1)
 
