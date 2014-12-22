@@ -6,7 +6,6 @@ edited  12-22-14
 import csv
 import math
 import random
-from random import Random
 
 class Loader_Manager(object):
     
