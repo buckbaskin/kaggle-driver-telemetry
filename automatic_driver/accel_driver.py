@@ -7,6 +7,8 @@ from automatic_driver.auto_driver import Driver
 from data_manipulation.data_loader import Trip, Loader_Manager
 from data_manipulation.data_loader import Driver as trips
 import math
+from scipy.stats import norm
+from matplotlib.tests.test_streamplot import velocity_field
 
 class Accel_Driver(Driver):
     
@@ -30,20 +32,18 @@ class Accel_Driver(Driver):
                 
         if not stop_points:
             # if its empty
-            return -1
+            return 0
         # it has at least one distinct stop
         patterns = []
         for index, v_ind in enumerate(stop_points):
             patterns.append(Pattern(trip.v_()[v_ind-5:v_ind+6])) 
         if not patterns:
             # if its empty
-            return -1
+            return 0
         # it has at least one pattern
         self.pattern_list = self.pattern_list + patterns
         
-        return 1
-        
-        return 0
+        return patterns
     
     def train_trip(self, trip):
         output = self._analyze_trip(trip)
@@ -63,18 +63,35 @@ class Accel_Driver(Driver):
                     data[i][j] = self.pattern_list[j].v_(i)
             avg = [ 0.0 ] * 11
             sdv = [ 0.0 ] * 11
-            for i in xrange(0,10):
+            for i in xrange(0,11):
                 avg = average(data[i])
                 sdv = stdev(data[i])
             # now I have the fingerprint
-                
+            self.fingerprint = Fingerprint(avg, sdv)
+    
+    def _develop_single(self, pattern_lst):
+        pass        
                 
     
-    def test_trip(self, trip):
-        return False
+    def test_trip(self, trip, develop_first = False):
+        if develop_first or self.fingerprint is None:
+            self.develop_data()
+        score = self._rate_trip(trip)
+        return score > .5
+        
     
     def _rate_trip(self, trip):
-        return 0.0
+        patterns = self.analyze_trip(trip)
+        if patterns is not 0:
+            avg_lst = [0.0] * 11
+            for x in xrange(0,11):
+                sum = 0.0
+                for y in xrange(0,len(patterns)):
+                    sum = sum + patterns[y].v_(x)
+                avg_lst[x] = sum * 1.0 / len(patterns)
+            return self.fingerprint.test_run(avg_lst)
+        else:
+            return 0.0
 
 class Pattern(object):
     
@@ -91,14 +108,28 @@ class Pattern(object):
 
 class Fingerprint(object):
     
-    def __init__(self, average, stdev):    
-        self.average = average
-        self.stdev = stdev
+    def __init__(self, average_lst, stdev_lst):
+        # lists of average and stdev    
+        self.average_lst = average_lst
+        self.stdev_lst = stdev_lst
+        # list of scipy stat distributions
+        # using list comprehension
+        self.d_lst = [ norm(loc=average_lst[x], scale=stdev_lst[x]) for x in xrange(0,11)]
         
     def test_run(self, velocity_list):
-        # return average confidence of fit
-        '''# TODO START HERE'''
-        pass
+        # return average confidence of fit for a run
+        # based on normal distributions, calculate score, then return average 
+        #    as fit score
+        try:
+            vel_lst = [velocity_list[x]/velocity_list[0] for x in xrange(0,11)] # normalized velocity list
+        except ZeroDivisionError as zde:
+            return 0.0
+        score_lst = [ self.score(vel_lst[x],self.d_lst[x]) for x in xrange(0,11) ]
+        return average(score_lst)
+    
+    def score(self, value, distribution):
+        inv_score = 2*abs(distribution.cdf(value)-.5) # "distance" from center
+        return 1 - inv_score #inv_score range 0 to 1 w/ 0 as on target
     
 def average(lst):
     return sum(lst)*1.0/len(lst)
